@@ -1,0 +1,11 @@
+question,response,human_score
+"What is the capital of France?","The capital of France is Paris.",5
+"What is 2+2?","2+2 equals 4.",5
+"Explain quantum physics","Quantum physics is complicated.",2
+"What is machine learning?","Machine learning is a subset of artificial intelligence that enables systems to learn from data.",4
+"Name the planets in our solar system","Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune.",5
+"What is the meaning of life?","42",3
+"How do you make a sandwich?","Put ingredients between two pieces of bread.",3
+"Explain photosynthesis","Plants convert sunlight into energy.",3
+"What is Python?","Python is a high-level programming language.",4
+"Define democracy","Democracy is a system of government by the people.",4
