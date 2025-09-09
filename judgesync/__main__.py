@@ -1,12 +1,27 @@
 """Command-line interface for JudgeSync."""
 
+import argparse
+from judgesync import AlignmentTracker, ScoreRange
 
-def main() -> None:
-    """Main entry point for JudgeSync CLI."""
-    print("JudgeSync - LLM Judge Alignment Tool")
-    print("Version: 0.1.0")
-    print("\nThis will be the CLI interface for JudgeSync.")
-    print("Run 'import judgesync' in Python to use the library.")
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Align LLM judges to human preferences"
+    )
+    parser.add_argument("csv_file", help="Path to CSV file with human scores")
+    parser.add_argument("--prompt", required=True, help="System prompt for judge")
+    parser.add_argument(
+        "--score-range",
+        default="FIVE_POINT",
+        choices=["BINARY", "FIVE_POINT", "PERCENTAGE", "TEN_POINT"],
+    )
+    args = parser.parse_args()
+
+    tracker = AlignmentTracker(score_range=getattr(ScoreRange, args.score_range))
+    tracker.load_human_scores_from_csv(args.csv_file)
+    tracker.set_judge(args.prompt)
+    results = tracker.run_alignment_test()
+    print(tracker.summary())
 
 
 if __name__ == "__main__":

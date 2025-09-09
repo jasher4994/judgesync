@@ -52,7 +52,8 @@ class DataLoader:
         question_col: str = "question",
         response_col: str = "response",
         score_col: str = "human_score",
-        metadata_cols: Optional[List[str]] = None
+        metadata_cols: Optional[List[str]] = None,
+        max_rows: int = 10000
     ) -> None:
         """Load evaluation data from a CSV file.
         
@@ -62,6 +63,7 @@ class DataLoader:
             response_col: Column name for responses.
             score_col: Column name for human scores.
             metadata_cols: Optional list of column names to include as metadata.
+            max_rows: Maximum number of rows to read from the CSV file.
             
         Raises:
             FileNotFoundError: If the file doesn't exist.
@@ -71,7 +73,9 @@ class DataLoader:
         if not path.exists():
             raise FileNotFoundError(f"File not found: {filepath}")
         
-        df = pd.read_csv(filepath)
+        df = pd.read_csv(filepath, nrows=max_rows)  # Prevent memory issues
+        if len(df) == max_rows:
+            print(f"Warning: CSV truncated to {max_rows} rows")
         
         # Check for required columns
         required_cols = [question_col, response_col, score_col]

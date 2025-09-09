@@ -3,9 +3,28 @@ name = "judgesync"
 version = "0.1.0"
 description = "A Python package for aligning LLM judges to human preferences"
 readme = "README.md"
+license = {text = "MIT"}
 authors = [
-    {name = "James Asher"},
+    {name = "James Asher", email = "jamesasher@microsoft.com"},
 ]
+keywords = ["llm", "evaluation", "alignment", "judge", "metrics", "azure", "openai"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/jasher4994/judgesync"  # UPDATE THIS
+"Bug Tracker" = "https://github.com/jasher4994/judgesync/issues"
+
+[project.scripts]
+judgesync = "judgesync.__main__:main"
 
 requires-python = ">=3.8"
 dependencies = [
@@ -22,6 +41,8 @@ dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "ruff>=0.1.0",
+    "pre-commit>=3.5.0",  # Add this
+    "mypy>=1.8.0",  # Add this for type checking
 ]
 
 [build-system]
