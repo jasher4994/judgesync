@@ -1,0 +1,26 @@
+{
+    "name": "Judgesync",
+    "image": "mcr.microsoft.com/devcontainers/python:0-3.10-bullseye",
+
+    "features": {
+        "ghcr.io/devcontainers/features/azure-cli:1": {
+          "extensions": "ml"
+        },
+        "ghcr.io/va-h/devcontainers-features/uv": {}
+    },
+
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-vscode.makefile-tools",
+                "davidanson.vscode-markdownlint"
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": ".venv/bin/python"
+            }
+        }
+    },
+    "postCreateCommand": "make install"
+}

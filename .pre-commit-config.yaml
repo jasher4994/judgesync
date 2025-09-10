@@ -7,6 +7,9 @@ repos:
       # Run the linter
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
+        # name: Lint Python
+        # entry: make lint
+        # language: system
       # Run the formatter
       - id: ruff-format
 
@@ -30,7 +33,6 @@ repos:
     rev: v1.4.0
     hooks:
       - id: detect-secrets
-        args: ['--baseline', '.secrets.baseline']
         exclude: .*\.lock$|package-lock\.json$
 
   # Python type checking with mypy (optional)
@@ -38,5 +40,4 @@ repos:
     rev: v1.8.0
     hooks:
       - id: mypy
-        additional_dependencies: [types-all]
         args: [--ignore-missing-imports]
