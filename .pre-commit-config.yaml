@@ -7,9 +7,6 @@ repos:
       # Run the linter
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
-        # name: Lint Python
-        # entry: make lint
-        # language: system
       # Run the formatter
       - id: ruff-format
 
