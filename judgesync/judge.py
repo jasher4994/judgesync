@@ -1,12 +1,18 @@
 """LLM Judge functionality using Azure OpenAI."""
 
+import asyncio
+import logging
 import os
 import time
-from typing import List, Optional, Dict, Any
-from openai import AzureOpenAI
+from typing import Any, Dict, List, Optional, Tuple
+
 from dotenv import load_dotenv
+from openai import AsyncAzureOpenAI, AzureOpenAI
 
 from .types import EvaluationItem, ScoreRange
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 
 class Judge:
@@ -20,6 +26,7 @@ class Judge:
         api_key: Optional[str] = None,
         deployment_name: Optional[str] = None,
         api_version: str = "2024-02-01",
+        temperature: float = 0.0,
     ):
         """Initialize the Judge with Azure OpenAI configuration.
 
@@ -30,12 +37,18 @@ class Judge:
             api_key: Azure OpenAI API key (or set AZURE_OPENAI_API_KEY env var).
             deployment_name: Azure deployment name (or set AZURE_OPENAI_DEPLOYMENT env var).
             api_version: Azure OpenAI API version.
+            temperature: Temperature for response generation (0-2).
         """
         # Load environment variables
         load_dotenv()
 
         self.system_prompt = system_prompt
         self.score_range = score_range
+
+        # Validate temperature
+        if not 0 <= temperature <= 2:
+            raise ValueError("Temperature must be between 0 and 2")
+        self.temperature = temperature
 
         # Get Azure configuration from parameters or environment
         self.azure_endpoint = azure_endpoint or os.getenv("AZURE_OPENAI_ENDPOINT")
@@ -49,8 +62,14 @@ class Judge:
                 "parameters or as environment variables."
             )
 
-        # Initialize Azure OpenAI client
+        # Initialize both sync and async Azure OpenAI clients
         self.client = AzureOpenAI(
+            azure_endpoint=self.azure_endpoint,
+            api_key=self.api_key,
+            api_version=api_version,
+        )
+
+        self.async_client = AsyncAzureOpenAI(
             azure_endpoint=self.azure_endpoint,
             api_key=self.api_key,
             api_version=api_version,
@@ -81,6 +100,7 @@ class Judge:
                 {"role": "system", "content": self._build_system_prompt()},
                 {"role": "user", "content": user_prompt},
             ],
+            temperature=self.temperature,
         )
 
         # Store the full response for debugging
@@ -88,36 +108,197 @@ class Judge:
 
         # Extract and parse the score
         response_text = response.choices[0].message.content.strip()
-        score = self._parse_score(response_text)
 
-        # Validate the score is in range
-        min_val, max_val = self.score_range.value
-        if not min_val <= score <= max_val:
+        # Parse the score from the response
+        import re
+
+        score_match = re.search(r"(\d+(?:\.\d+)?)", response_text)
+        if not score_match:
+            raise ValueError(f"Could not parse score from response: {response_text}")
+
+        try:
+            score = float(score_match.group(1))
+        except (ValueError, AttributeError) as e:
             raise ValueError(
-                f"Judge returned score {score} outside of expected range "
-                f"[{min_val}, {max_val}]"
-            )
+                f"Could not parse score from response: {response_text}"
+            ) from e
+
+        # Validate score is within expected range
+        min_score, max_score = self.score_range.value
+        if not min_score <= score <= max_score:
+            raise ValueError(
+                f"Score {score} is outside of expected range [{min_score}, {max_score}]"
+            ) from None
 
         return score
 
+    async def _score_item_async(
+        self, item: EvaluationItem
+    ) -> Tuple[EvaluationItem, Optional[float]]:
+        """Score a single item asynchronously.
+
+        Args:
+            item: The evaluation item to score.
+
+        Returns:
+            Tuple of (item, score) where score is None if error occurred.
+        """
+        try:
+            user_prompt = self._build_user_prompt(item)
+
+            response = await self.async_client.chat.completions.create(
+                model=self.deployment_name,
+                messages=[
+                    {"role": "system", "content": self._build_system_prompt()},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=self.temperature,
+            )
+
+            response_text = response.choices[0].message.content.strip()
+
+            # Parse the score
+            import re
+
+            score_match = re.search(r"(\d+(?:\.\d+)?)", response_text)
+            if not score_match:
+                logger.warning(
+                    f"Could not parse score from response: {response_text[:100]}"
+                )
+                return item, None
+
+            score = float(score_match.group(1))
+
+            # Validate score range
+            min_score, max_score = self.score_range.value
+            if not min_score <= score <= max_score:
+                logger.warning(
+                    f"Score {score} outside range [{min_score}, {max_score}]"
+                )
+                return item, None
+
+            return item, score
+
+        except Exception as e:
+            logger.error(f"Error scoring item: {e}")
+            return item, None
+
+    async def _score_batch_async(
+        self,
+        items: List[EvaluationItem],
+        batch_size: int = 10,
+        delay_between_batches: float = 0.1,
+    ) -> List[EvaluationItem]:
+        """Score items in batches asynchronously.
+
+        Args:
+            items: List of items to score.
+            batch_size: Number of concurrent requests per batch.
+            delay_between_batches: Delay between batches to prevent rate limiting.
+
+        Returns:
+            List of items with judge_score populated where successful.
+        """
+        results = []
+
+        # Process in batches
+        for i in range(0, len(items), batch_size):
+            batch = items[i : i + batch_size]
+
+            # Score all items in this batch concurrently
+            batch_tasks = [self._score_item_async(item) for item in batch]
+            batch_results = await asyncio.gather(*batch_tasks)
+
+            # Update items with scores
+            for item, score in batch_results:
+                if score is not None:
+                    item.judge_score = score
+                results.append(item)
+
+            # Delay between batches to avoid rate limiting
+            if i + batch_size < len(items):
+                await asyncio.sleep(delay_between_batches)
+
+        return results
+
+    def score_items_async(
+        self,
+        items: List[EvaluationItem],
+        batch_size: int = 10,
+        delay_between_batches: float = 0.1,
+        show_progress: bool = True,
+    ) -> List[EvaluationItem]:
+        """Score multiple items using async batch processing.
+
+        This is much faster than sequential scoring, especially for large datasets.
+
+        Args:
+            items: List of evaluation items to score.
+            batch_size: Number of concurrent API calls per batch.
+            delay_between_batches: Delay between batches (seconds).
+            show_progress: Whether to show progress bar.
+
+        Returns:
+            The same items with judge_score populated where successful.
+
+        Example:
+            >>> items = [EvaluationItem(...) for _ in range(100)]
+            >>> scored_items = judge.score_items_async(items, batch_size=20)
+            Processing 100 items in 5 batches...
+            Batch 1/5: ████████████ 100%
+            ...
+        """
+        if show_progress:
+            n_batches = (len(items) + batch_size - 1) // batch_size
+            logger.info(f"Processing {len(items)} items in {n_batches} batches...")
+
+        # Run the async function in a new event loop if needed
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # If loop is already running (e.g., in Jupyter), create a new one
+                import nest_asyncio
+
+                nest_asyncio.apply()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        # Run the async scoring
+        result = asyncio.run(
+            self._score_batch_async(items, batch_size, delay_between_batches)
+        )
+
+        if show_progress:
+            scored_count = sum(1 for item in result if item.judge_score is not None)
+            logger.info(f"Successfully scored {scored_count}/{len(items)} items")
+
+        return result
+
     def score_items(
-        self, items: List[EvaluationItem], delay: float = 0.1
+        self, items: List[EvaluationItem], delay: float = 0.1, use_async: bool = True
     ) -> List[EvaluationItem]:
         """Score multiple evaluation items.
 
         Args:
             items: List of evaluation items to score.
-            delay: Delay between scoring items to prevent rate limiting.
+            delay: Delay between scoring items (for sync mode).
+            use_async: Whether to use async batch processing (much faster).
 
         Returns:
             The same items with judge_score populated.
         """
-        for item in items:
+        if use_async and len(items) > 5:
+            # Use async for better performance on larger datasets
+            return self.score_items_async(items)
+
+        # Fall back to sequential processing for small datasets
+        for i, item in enumerate(items):
             try:
                 item.judge_score = self.score_item(item)
                 time.sleep(delay)  # Prevent rate limiting
             except Exception as e:
-                print(f"Error scoring item: {e}")
+                logger.error(f"Error scoring item {i}: {e}")
                 # Continue with other items even if one fails
                 continue
 
@@ -147,33 +328,6 @@ class Judge:
             The formatted user prompt.
         """
         return f"Question: {item.question}\n\nResponse: {item.response}"
-
-    def _parse_score(self, response_text: str) -> float:
-        """Parse the score from the judge's response.
-
-        Args:
-            response_text: The raw response from the judge.
-
-        Returns:
-            The parsed numerical score.
-
-        Raises:
-            ValueError: If the response cannot be parsed as a number.
-        """
-        # Try to extract just a number from the response
-        # Handle cases where judge might add explanation
-        try:
-            # Take the first word/token and try to parse it
-            first_token = response_text.split()[0] if response_text else ""
-            return float(first_token)
-        except (ValueError, IndexError):
-            # If that fails, try the whole response
-            try:
-                return float(response_text)
-            except ValueError:
-                raise ValueError(
-                    f"Could not parse score from response: '{response_text}'"
-                )
 
     def update_system_prompt(self, new_prompt: str) -> None:
         """Update the system prompt for the judge.

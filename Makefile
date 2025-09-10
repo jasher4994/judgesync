@@ -1,4 +1,4 @@
-.PHONY: help install test lint format clean
+.PHONY: help install test lint format clean pre-commit
 
 help:
 	@echo "Available commands:"

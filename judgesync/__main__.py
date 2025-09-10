@@ -1,6 +1,7 @@
 """Command-line interface for JudgeSync."""
 
 import argparse
+
 from judgesync import AlignmentTracker, ScoreRange
 
 
@@ -20,7 +21,8 @@ def main():
     tracker = AlignmentTracker(score_range=getattr(ScoreRange, args.score_range))
     tracker.load_human_scores_from_csv(args.csv_file)
     tracker.set_judge(args.prompt)
-    results = tracker.run_alignment_test()
+
+    tracker.run_alignment_test()
     print(tracker.summary())
 
 
