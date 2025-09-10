@@ -1,6 +1,7 @@
 """LLM Judge functionality using Azure OpenAI."""
 
 import asyncio
+import logging
 import os
 import time
 from typing import Any, Dict, List, Optional, Tuple
@@ -9,6 +10,9 @@ from dotenv import load_dotenv
 from openai import AsyncAzureOpenAI, AzureOpenAI
 
 from .types import EvaluationItem, ScoreRange
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 
 class Judge:
@@ -158,7 +162,9 @@ class Judge:
 
             score_match = re.search(r"(\d+(?:\.\d+)?)", response_text)
             if not score_match:
-                print(f"Could not parse score from response: {response_text}")
+                logger.warning(
+                    f"Could not parse score from response: {response_text[:100]}"
+                )
                 return item, None
 
             score = float(score_match.group(1))
@@ -166,13 +172,15 @@ class Judge:
             # Validate score range
             min_score, max_score = self.score_range.value
             if not min_score <= score <= max_score:
-                print(f"Score {score} outside range [{min_score}, {max_score}]")
+                logger.warning(
+                    f"Score {score} outside range [{min_score}, {max_score}]"
+                )
                 return item, None
 
             return item, score
 
         except Exception as e:
-            print(f"Error scoring item: {e}")
+            logger.error(f"Error scoring item: {e}")
             return item, None
 
     async def _score_batch_async(
@@ -242,7 +250,7 @@ class Judge:
         """
         if show_progress:
             n_batches = (len(items) + batch_size - 1) // batch_size
-            print(f"Processing {len(items)} items in {n_batches} batches...")
+            logger.info(f"Processing {len(items)} items in {n_batches} batches...")
 
         # Run the async function in a new event loop if needed
         try:
@@ -263,7 +271,7 @@ class Judge:
 
         if show_progress:
             scored_count = sum(1 for item in result if item.judge_score is not None)
-            print(f"Successfully scored {scored_count}/{len(items)} items")
+            logger.info(f"Successfully scored {scored_count}/{len(items)} items")
 
         return result
 
@@ -285,12 +293,12 @@ class Judge:
             return self.score_items_async(items)
 
         # Fall back to sequential processing for small datasets
-        for item in items:
+        for i, item in enumerate(items):
             try:
                 item.judge_score = self.score_item(item)
                 time.sleep(delay)  # Prevent rate limiting
             except Exception as e:
-                print(f"Error scoring item: {e}")
+                logger.error(f"Error scoring item {i}: {e}")
                 # Continue with other items even if one fails
                 continue
 

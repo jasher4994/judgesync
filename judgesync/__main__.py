@@ -22,8 +22,7 @@ def main():
     tracker.load_human_scores_from_csv(args.csv_file)
     tracker.set_judge(args.prompt)
 
-    # Run the alignment test and display results
-    tracker.run_alignment_test()  # Remove the unused assignment
+    tracker.run_alignment_test()
     print(tracker.summary())
 
 

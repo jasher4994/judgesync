@@ -1,11 +1,15 @@
 """Data loading functionality for JudgeSync."""
 
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
 from .types import EvaluationItem, ScoreRange
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 
 class DataLoader:
@@ -75,7 +79,7 @@ class DataLoader:
 
         df = pd.read_csv(filepath, nrows=max_rows)  # Prevent memory issues
         if len(df) == max_rows:
-            print(f"Warning: CSV truncated to {max_rows} rows")
+            logger.warning(f"CSV truncated to {max_rows} rows")
 
         # Check for required columns
         required_cols = [question_col, response_col, score_col]

@@ -5,6 +5,7 @@ __author__ = "James Asher"
 
 # Import all main classes and types
 from .alignment import AlignmentTracker
+from .comparison import ComparisonResults, JudgeComparison, JudgeConfig
 from .data_loader import DataLoader
 from .judge import Judge
 from .metrics import AlignmentMetrics
@@ -24,4 +25,8 @@ __all__ = [
     "Judge",
     "AlignmentMetrics",
     "AlignmentTracker",
+    # Comparison functionality
+    "JudgeComparison",
+    "JudgeConfig",
+    "ComparisonResults",
 ]

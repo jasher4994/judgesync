@@ -1,16 +1,21 @@
-"""Main alignment tracker for JudgeSync."""
+"""Main alignment tracking functionality."""
 
-from pathlib import Path
+import logging
+from pathlib import Path  # Add this import
 from typing import Any, Dict, List, Optional
 
+from .comparison import ComparisonResults, JudgeComparison
 from .data_loader import DataLoader
 from .judge import Judge
 from .metrics import AlignmentMetrics
 from .types import AlignmentResults, EvaluationItem, ScoreRange
 
+# Set up logging
+logger = logging.getLogger(__name__)
+
 
 class AlignmentTracker:
-    """Main class for tracking and improving judge alignment with human preferences."""
+    """Main class for tracking alignment between human and LLM judge scores."""
 
     def __init__(
         self,
@@ -63,25 +68,24 @@ class AlignmentTracker:
         filepath: str,
         question_col: str = "question",
         response_col: str = "response",
-        score_col: str = "human_score",
-        metadata_cols: Optional[List[str]] = None,
+        human_score_col: str = "human_score",
     ) -> None:
-        """Load human scores from a CSV file.
+        """Load human evaluation scores from a CSV file.
 
         Args:
             filepath: Path to the CSV file.
             question_col: Column name for questions.
             response_col: Column name for responses.
-            score_col: Column name for human scores.
-            metadata_cols: Optional metadata columns to include.
+            human_score_col: Column name for human scores.
         """
+        logger.info(f"Loading human scores from {filepath}")
         self.data_loader.load_from_csv(
             filepath=filepath,
             question_col=question_col,
             response_col=response_col,
-            score_col=score_col,
-            metadata_cols=metadata_cols,
+            score_col=human_score_col,  # Changed from human_score_col to score_col
         )
+        logger.info(f"Loaded {len(self.data_loader.items)} items")
 
     def add_evaluation_item(
         self,
@@ -160,31 +164,32 @@ class AlignmentTracker:
 
         return results
 
-    def run_alignment_test(self) -> AlignmentResults:
-        """Run a complete alignment test: judge items and calculate metrics.
-
-        Returns:
-            AlignmentResults from the test.
-
-        Raises:
-            ValueError: If judge not configured or no items loaded.
-        """
+    def run_alignment_test(self, use_async: bool = True) -> AlignmentResults:
+        """Run alignment test with current judge and data."""
         if not self.judge:
-            raise ValueError("No judge configured. Call set_judge() first.")
-
+            raise ValueError("No judge set. Call set_judge() first.")
         if not self.data_loader.items:
             raise ValueError("No items loaded. Load data first.")
 
-        # Only judge items that don't already have judge scores
-        items_to_judge = [
-            item for item in self.data_loader.items if item.judge_score is None
-        ]
+        logger.info("Running alignment test...")
 
-        if items_to_judge:
-            self.run_judge(items_to_judge)
+        # Score items using the judge
+        items = self.data_loader.items
+        self.judge.score_items(items, use_async=use_async)
 
-        # Calculate alignment on all items
-        return self.calculate_alignment()
+        # Calculate alignment metrics
+        results = self.metrics.calculate(items)
+
+        # Store in history
+        self.history.append(
+            {
+                "system_prompt": self.judge.system_prompt,
+                "results": results,
+            }
+        )
+
+        logger.info(f"Alignment test complete. Kappa: {results.kappa_score:.3f}")
+        return results
 
     def export_prompt(self, filepath: Optional[str] = None) -> str:
         """Export the current judge prompt.
@@ -251,3 +256,58 @@ class AlignmentTracker:
             )
 
         return "\n".join(summary_parts)
+
+    def create_comparison(self) -> JudgeComparison:
+        """Create a JudgeComparison instance for comparing multiple judges.
+
+        Returns:
+            A JudgeComparison instance.
+
+        Example:
+            >>> tracker = AlignmentTracker()
+            >>> comparison = tracker.create_comparison()
+            >>> comparison.add_judge("strict", "Be very strict")
+            >>> comparison.add_judge("lenient", "Be generous")
+            >>> results = comparison.run_comparison(tracker.data_loader.items)
+        """
+        return JudgeComparison(
+            score_range=self.score_range,
+            azure_endpoint=self.judge.azure_endpoint if self.judge else None,
+            api_key=self.judge.api_key if self.judge else None,
+        )
+
+    def compare_prompts(
+        self,
+        prompts: Dict[str, str],
+        use_async: bool = True,
+    ) -> ComparisonResults:
+        """Compare multiple prompts to find the best one.
+
+        Args:
+            prompts: Dictionary of {name: prompt} to compare.
+            use_async: Whether to use async processing.
+
+        Returns:
+            ComparisonResults with rankings.
+
+        Example:
+            >>> prompts = {
+            ...     "strict": "Be very strict in evaluation",
+            ...     "balanced": "Provide balanced evaluation",
+            ...     "lenient": "Be generous in evaluation",
+            ... }
+            >>> results = tracker.compare_prompts(prompts)
+            >>> print(f"Best prompt: {results.best_judge}")
+        """
+        if not self.data_loader.items:
+            raise ValueError("No items loaded for comparison")
+
+        comparison = self.create_comparison()
+
+        for name, prompt in prompts.items():
+            comparison.add_judge(name, prompt)
+
+        return comparison.run_comparison(
+            self.data_loader.items,
+            use_async=use_async,
+        )

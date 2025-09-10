@@ -1,11 +1,51 @@
 question,response,human_score
-"What is the capital of France?","The capital of France is Paris.",5
-"What is 2+2?","2+2 equals 4.",5
-"Explain quantum physics","Quantum physics is complicated.",2
-"What is machine learning?","Machine learning is a subset of artificial intelligence that enables systems to learn from data.",4
-"Name the planets in our solar system","Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune.",5
-"What is the meaning of life?","42",3
-"How do you make a sandwich?","Put ingredients between two pieces of bread.",3
-"Explain photosynthesis","Plants convert sunlight into energy.",3
-"What is Python?","Python is a high-level programming language.",4
-"Define democracy","Democracy is a system of government by the people.",4
+What is the capital of France?,"Paris is the capital of France. It's located in the north-central part of the country and has been the capital since the 12th century. The city is known for landmarks like the Eiffel Tower and serves as the country's political, economic, and cultural center.",5
+Explain photosynthesis in simple terms.,"Plants make food from sunlight, that's basically it.",2
+How do you make a peanut butter sandwich?,"First, get two slices of bread. Then spread peanut butter on one slice. You can add jelly if you want. Put the slices together and your sandwich is ready. Make sure to spread evenly for best results.",4
+What causes seasons on Earth?,"The Earth tilts as it goes around the sun, which causes seasons. When your part of Earth tilts toward the sun, it's summer. When it tilts away, it's winter. This tilt is about 23.5 degrees.",4
+Describe the water cycle.,"Water evaporates, forms clouds, then rains back down.",3
+What is machine learning?,"Machine learning is when computers learn patterns from data without being explicitly programmed for every scenario. The system improves through experience. It involves algorithms that can identify patterns and make decisions.",5
+How does a car engine work?,"Gas explodes in cylinders, pushing pistons that turn the wheels.",2
+What are the benefits of exercise?,"Exercise improves cardiovascular health, strengthens muscles, helps maintain healthy weight, and boosts mental health. Regular physical activity reduces risk of chronic diseases.",4
+Explain supply and demand.,"When lots of people want something but there's not much of it, the price goes up. When there's lots available but few want it, price goes down.",3
+What is climate change?,"Climate change refers to long-term shifts in global temperatures and weather patterns. Human activities have been the dominant driver since the 1900s, primarily through burning fossil fuels.",5
+How do vaccines work?,"Vaccines train your immune system to recognize and fight specific diseases by introducing a weakened or inactive form of the pathogen.",4
+What is the difference between weather and climate?,"Weather is what's happening outside right now. Climate is the average weather over many years.",3
+Explain the concept of gravity.,"Everything pulls on everything else. Bigger things pull harder.",2
+How does the internet work?,"The internet is a global network of connected computers that communicate using protocols like TCP/IP. Data travels through routers and servers as packets.",4
+What is DNA?,"DNA is like an instruction manual for your body.",2
+Describe the solar system.,"Our solar system has the Sun at the center with eight planets orbiting around it. Inner planets are rocky, outer planets are gas giants.",4
+What causes earthquakes?,"Earthquakes happen when tectonic plates in Earth's crust suddenly move or slip past each other, releasing energy as seismic waves.",3
+How do airplanes fly?,"Wings are shaped so air moves faster over the top than the bottom, creating lift. Engines provide thrust to move forward.",3
+What is artificial intelligence?,"AI is technology that enables machines to simulate human intelligence, including learning, reasoning, and problem-solving.",4
+Explain the greenhouse effect.,"Certain gases in the atmosphere trap heat from the sun, keeping Earth warm. Human activities are increasing these gases.",3
+What is democracy?,"Democracy is a system of government where citizens elect their leaders and participate in decision-making through voting.",3
+How do smartphones work?,"Smartphones are small computers with processors, memory, and wireless connectivity that run apps and connect to cellular networks.",3
+What is cryptocurrency?,"Digital money that uses cryptography for security and operates independently of central banks.",2
+Explain inflation.,"Inflation is when prices of goods and services increase over time, reducing the purchasing power of money.",3
+What causes lightning?,"Lightning occurs when electrical charges build up in clouds and discharge to the ground or between clouds.",3
+How do magnets work?,"Magnets have invisible fields that attract iron and other magnetic materials. They have north and south poles.",2
+What is evolution?,"Evolution is the process by which species change over time through natural selection and genetic variation.",4
+Describe the human digestive system.,"Food travels from mouth to stomach to intestines, where nutrients are absorbed. Enzymes break down food at each stage.",3
+What is renewable energy?,"Energy from sources that naturally replenish, like solar, wind, and hydroelectric power.",3
+How do antibiotics work?,"Antibiotics kill bacteria or stop them from reproducing, helping your body fight bacterial infections.",3
+What is the stock market?,"A marketplace where shares of companies are bought and sold. Prices fluctuate based on company performance and investor sentiment.",3
+Explain quantum physics.,"The study of matter and energy at the smallest scales, where particles behave in strange ways unlike our everyday experience.",2
+What causes tsunamis?,"Tsunamis are giant waves caused by underwater earthquakes, volcanic eruptions, or landslides that displace large amounts of water.",4
+How does GPS work?,"GPS uses satellites orbiting Earth to triangulate your position by measuring signal travel time from multiple satellites.",3
+What is blockchain?,"A decentralized digital ledger that records transactions across many computers in a way that can't be altered retroactively.",3
+Describe metabolism.,"The chemical processes in your body that convert food into energy and building materials for cells.",2
+What is the Big Bang theory?,"The scientific theory that the universe began from a single point about 13.8 billion years ago and has been expanding ever since.",4
+How do electric cars work?,"Electric cars use batteries to power electric motors that turn the wheels, instead of burning gasoline in an engine.",3
+What is meditation?,"A practice of focused attention and awareness to achieve mental clarity and emotional calm.",2
+Explain carbon footprint.,"The total amount of greenhouse gases produced by human activities, measured in carbon dioxide equivalents.",3
+What causes hurricanes?,"Hurricanes form over warm ocean water when conditions create a rotating system of clouds and wind that intensifies.",3
+How does memory work?,"The brain encodes, stores, and retrieves information through connections between neurons. Short-term becomes long-term through repetition.",3
+What is CRISPR?,"A gene-editing technology that allows scientists to modify DNA sequences precisely, like molecular scissors for genes.",4
+Describe the immune system.,"Your body's defense network of cells and proteins that identifies and fights harmful invaders like viruses and bacteria.",3
+What is dark matter?,"Invisible matter that doesn't emit light but has gravitational effects, making up most of the universe's mass.",2
+How do computers store data?,"Computers store data as binary code (1s and 0s) on hard drives or solid-state drives using magnetic or electronic methods.",3
+What is empathy?,"The ability to understand and share the feelings of others, putting yourself in someone else's shoes.",3
+Explain the food chain.,"A sequence showing who eats whom in an ecosystem, transferring energy from plants to herbivores to carnivores.",3
+What causes aging?,"Aging results from accumulated cellular damage, genetic factors, and wear on body systems over time.",2
+How do touchscreens work?,"Touchscreens detect your finger's position using either electrical conductivity or pressure sensors to register input.",3
