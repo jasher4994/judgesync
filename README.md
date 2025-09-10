@@ -37,14 +37,14 @@ tracker = AlignmentTracker(score_range=ScoreRange.FIVE_POINT)
 tracker.load_human_scores_from_csv(
     "data.csv",
     question_col="question",
-    response_col="response", 
+    response_col="response",
     score_col="human_score"
 )
 
 # Configure the LLM judge
 system_prompt = """You are an expert evaluator. Rate responses on a scale of 1-5:
 5 = Excellent
-4 = Good  
+4 = Good
 3 = Adequate
 2 = Poor
 1 = Very poor"""
