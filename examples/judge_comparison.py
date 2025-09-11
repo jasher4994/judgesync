@@ -4,12 +4,20 @@ import logging
 
 from judgesync import AlignmentTracker, ScoreRange
 
-# Configure logging
+# Configure logging - only show INFO and above for judgesync
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.WARNING,  # Set default to WARNING
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     datefmt="%H:%M:%S",
 )
+
+# Set judgesync to INFO level to see our messages
+logging.getLogger("judgesync").setLevel(logging.INFO)
+
+# Suppress other verbose loggers
+logging.getLogger("openai").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 # Load your evaluation data
 tracker = AlignmentTracker(score_range=ScoreRange.FIVE_POINT)

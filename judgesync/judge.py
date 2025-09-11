@@ -14,6 +14,11 @@ from .types import EvaluationItem, ScoreRange
 # Set up logging
 logger = logging.getLogger(__name__)
 
+# Suppress OpenAI HTTP request logs
+logging.getLogger("openai").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+
 
 class Judge:
     """Manages LLM judge interactions using Azure OpenAI."""
