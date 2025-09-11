@@ -294,6 +294,7 @@ class JudgeComparison:
             ax.set_ylabel("Kappa Score")
             ax.set_title("Cohen's Kappa by Judge")
             ax.set_ylim(0, 1)
+            ax.tick_params(axis="x", rotation=45)
 
             # 2. Agreement rates
             ax = axes[0, 1]
@@ -303,6 +304,7 @@ class JudgeComparison:
             ax.set_ylabel("Agreement Rate")
             ax.set_title("Agreement Rate by Judge")
             ax.set_ylim(0, 1)
+            ax.tick_params(axis="x", rotation=45)
 
             # 3. Score distribution comparison
             ax = axes[0, 2]
@@ -349,6 +351,7 @@ class JudgeComparison:
             ax.set_ylabel("Correlation")
             ax.set_title("Pearson Correlation by Judge")
             ax.set_ylim(-1, 1)
+            ax.tick_params(axis="x", rotation=45)
 
             # 6. Distribution comparison for all judges
             ax = axes[1, 2]
@@ -376,12 +379,15 @@ class JudgeComparison:
                 ax.set_title("Score Distribution Comparison (All Judges)")
                 ax.tick_params(axis="x", rotation=45)
 
+            # Add title and adjust layout
             plt.suptitle(
                 f"Judge Comparison Results - Best: {results.best_judge}",
                 fontsize=14,
                 fontweight="bold",
             )
-            plt.tight_layout()
+
+            # Use tight_layout with padding to prevent label cutoff
+            plt.tight_layout(rect=[0, 0.03, 1, 0.97])
 
             # Save if path provided
             if save_path:
