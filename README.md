@@ -1,15 +1,16 @@
-# JudgeSync
+# JudgeSync 🧑‍⚖️
 
-A Python package for aligning LLM judges to human preferences. JudgeSync helps you statistically measure and improve the alignment between automated LLM evaluations and human judgments using metrics like Cohen's kappa.
+A lightweight Python package for calibrating LLM judges to align with human evaluations. Minimize bias and improve reliability in your LLM-as-a-judge workflows.
 
-## Features
+## Why JudgeSync?
 
-- 📊 **Statistical Alignment Metrics**: Calculate Cohen's kappa, agreement rates, and correlation coefficients
-- 🤖 **Azure OpenAI Integration**: Built-in support for using Azure OpenAI models as judges
-- 📁 **Flexible Data Loading**: Load human scores from CSV files or add them programmatically
-- 🎯 **Multiple Scoring Ranges**: Support for binary, Likert scale, percentage, and custom scoring systems
-- 📈 **Alignment Tracking**: Track improvement across different prompts and configurations
-- 💾 **Prompt Export**: Export successful prompts for production use
+LLM judges are powerful but exhibit biases:
+- **Verbosity bias**: Favoring longer responses even with errors
+- **Position bias**: Preferring the first option presented
+- **Self-bias**: Favoring outputs from similar models
+- **Leniency/Strictness**: Inconsistent scoring patterns
+
+JudgeSync helps you find the optimal judge configuration (prompt, model, temperature) that best aligns with human judgments.
 
 ## Installation
 
@@ -17,192 +18,190 @@ A Python package for aligning LLM judges to human preferences. JudgeSync helps y
 pip install judgesync
 ```
 
-For development:
-
-```bash
-git clone https://github.com/yourusername/judgesync.git
-cd judgesync
-pip install -e ".[dev]"
-```
-
 ## Quick Start
 
 ```python
 from judgesync import AlignmentTracker, ScoreRange
 
-# Initialize tracker with a 5-point scale
+# Load your evaluation data with human scores
 tracker = AlignmentTracker(score_range=ScoreRange.FIVE_POINT)
+tracker.load_human_scores_from_csv("evaluation_data.csv")
 
-# Load human-labeled data
-tracker.load_human_scores_from_csv(
-    "data.csv",
-    question_col="question",
-    response_col="response",
-    score_col="human_score"
+# Compare different judge prompts
+prompt_comparison = tracker.create_comparison()
+
+prompt_comparison.add_judge(
+    name="strict",
+    system_prompt="You are a strict evaluator. Only give high scores to exceptional responses.",
 )
 
-# Configure the LLM judge
-system_prompt = """You are an expert evaluator. Rate responses on a scale of 1-5:
-5 = Excellent
-4 = Good
-3 = Adequate
-2 = Poor
-1 = Very poor"""
-
-tracker.set_judge(system_prompt)
-
-# Run alignment test
-results = tracker.run_alignment_test()
-
-# View results
-print(f"Kappa Score: {results.kappa_score:.3f}")
-print(f"Agreement Rate: {results.agreement_rate:.2%}")
-
-# Export the prompt
-tracker.export_prompt("optimized_prompt.txt")
-```
-
-## Configuration
-
-### Azure OpenAI Setup
-
-Create a `.env` file in your project root:
-
-```env
-AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-AZURE_OPENAI_API_KEY=your-api-key-here
-AZURE_OPENAI_DEPLOYMENT=your-deployment-name
-```
-
-Or pass credentials directly:
-
-```python
-tracker.set_judge(
-    system_prompt="...",
-    azure_endpoint="...",
-    api_key="...",
-    deployment_name="..."
+prompt_comparison.add_judge(
+    name="balanced",
+    system_prompt="You are a balanced evaluator. Consider both strengths and weaknesses fairly.",
 )
-```
 
-### Scoring Ranges
-
-JudgeSync supports multiple scoring ranges:
-
-```python
-from judgesync import ScoreRange
-
-ScoreRange.BINARY       # 0-1 (Pass/Fail)
-ScoreRange.FIVE_POINT   # 1-5 (Likert scale)
-ScoreRange.PERCENTAGE   # 0-100
-ScoreRange.TEN_POINT    # 1-10
-```
-
-## Data Format
-
-### CSV Format
-
-Your CSV should have columns for questions, responses, and human scores:
-
-```csv
-question,response,human_score
-"What is 2+2?","4",5
-"Capital of France?","Paris",5
-"Explain gravity","It makes things fall",3
-```
-
-### Programmatic Input
-
-```python
-tracker.add_evaluation_item(
-    question="What is the capital of France?",
-    response="Paris is the capital of France.",
-    human_score=5,
-    metadata={"category": "geography"}
+prompt_comparison.add_judge(
+    name="detailed_rubric",
+    system_prompt="""Rate responses on a 1-5 scale:
+    5: Comprehensive, accurate, well-structured
+    4: Good accuracy, minor gaps
+    3: Adequate, addresses main points
+    2: Partially correct, significant gaps
+    1: Incorrect or irrelevant""",
 )
+
+# Run comparison and find the best judge
+results = prompt_comparison.run_comparison(tracker.data_loader.items, use_async=True)
+print(results)
+
+# Visualize results
+prompt_comparison.plot_comparison(results, save_path="judge_comparison.png")
 ```
 
-## Metrics
+## Key Metrics
 
-JudgeSync calculates several alignment metrics:
+### Cohen's Kappa (κ)
+Measures agreement between human and LLM judge, accounting for chance agreement:
+- **κ > 0.7**: Production-ready alignment
+- **κ = 0.4-0.7**: Good alignment, may need fine-tuning
+- **κ < 0.4**: Poor alignment, needs improvement
 
-- **Cohen's Kappa**: Inter-rater reliability (-1 to 1, higher is better)
-- **Agreement Rate**: Percentage of scores within tolerance
-- **Correlation**: Pearson or Spearman correlation coefficients
-- **Confusion Matrix**: For analyzing disagreement patterns
+### Agreement Rate
+Percentage of exact score matches between human and judge.
+
+## Features
+
+### 🎯 Score Alignment
+- Support for multiple scoring scales (binary, 5-point, 10-point, percentage)
+- Automatic score range validation
+- Statistical metrics (Cohen's Kappa, correlation, agreement rate)
+
+### 🔬 Judge Comparison
+- Test multiple prompts/models simultaneously
+- Async batch processing for efficiency
+- Identify optimal judge configuration
+
+### 📊 Visualization
+- Performance comparison charts
+- Score distribution analysis
+- Disagreement identification
+
+### 🎛️ Model Configuration
+- Compare different models (GPT-4, GPT-3.5, etc.)
+- Test temperature settings
+- Experiment with custom prompts
 
 ## Advanced Usage
 
-### Testing Multiple Prompts
+### Compare Different Models
 
 ```python
-prompts = [
-    "Be a strict evaluator...",
-    "Be a lenient evaluator...",
-    "Focus on accuracy..."
-]
+comparison = tracker.create_comparison()
 
-for prompt in prompts:
-    tracker.set_judge(prompt)
-    results = tracker.run_alignment_test()
-    print(f"Prompt: {prompt[:30]}... -> Kappa: {results.kappa_score:.3f}")
+# Test different model configurations
+comparison.add_judge(
+    name="gpt-4-cold",
+    system_prompt="Rate the response quality.",
+    deployment_name="gpt-4",
+    temperature=0.0,
+)
 
-# Get the best performing prompt
-best = tracker.get_best_prompt()
+comparison.add_judge(
+    name="gpt-4-warm",
+    system_prompt="Rate the response quality.",
+    deployment_name="gpt-4",
+    temperature=0.7,
+)
+
+results = comparison.run_comparison(tracker.data_loader.items)
 ```
 
-### Custom Metrics
+### Analyze Disagreements
 
 ```python
-from judgesync import AlignmentMetrics
-
-metrics = AlignmentMetrics(score_range=ScoreRange.PERCENTAGE)
-correlation = metrics.calculate_correlation(items, method="spearman")
-confusion_matrix = metrics.get_confusion_matrix(items)
+# Find items where judges disagree significantly
+disagreements = comparison.get_disagreement_items(results, threshold=1.0)
+print(f"Found {len(disagreements)} items with high disagreement")
 ```
+
+### Custom Azure OpenAI Configuration
+
+```python
+# Option 1: Environment variables (.env file)
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+AZURE_OPENAI_API_KEY=your-api-key
+AZURE_OPENAI_DEPLOYMENT=gpt-4
+
+# Option 2: Direct configuration
+tracker.set_judge(
+    system_prompt="Your prompt here",
+    azure_endpoint="https://your-resource.openai.azure.com/",
+    api_key="your-api-key",
+    deployment_name="gpt-4"
+)
+```
+
+## CSV Format
+
+Your evaluation data should have these columns:
+- `question`: The input/prompt
+- `response`: The response to evaluate
+- `human_score`: The human-assigned score
+
+```csv
+question,response,human_score
+What is the capital of France?,"Paris is the capital of France.",5
+Explain photosynthesis.,"Plants make food from sunlight.",3
+```
+
+## Visualization Examples
+
+JudgeSync generates comprehensive comparison charts showing:
+- Cohen's Kappa scores by judge
+- Agreement rates
+- Score distributions
+- Correlation analysis
+
+![Judge Comparison Example](examples/prompt_comparison.png)
+
+## Best Practices
+
+1. **Start with diverse test data**: Include responses across all score ranges
+2. **Test multiple prompts**: Even small wording changes can impact alignment
+3. **Consider temperature**: Lower temperatures (0.0-0.3) often provide more consistent scoring
+4. **Validate on held-out data**: Ensure your calibrated judge generalizes well
+5. **Monitor for biases**: Check if judges favor certain response styles
 
 ## Requirements
 
 - Python 3.8+
-- Azure OpenAI API access (for judge functionality)
-
-## Dependencies
-
-- pandas >= 1.3.0
-- numpy >= 1.21.0
-- scikit-learn >= 1.0.0
-- openai >= 1.0.0
-- azure-identity >= 1.14.0
-- python-dotenv >= 0.19.0
-
-## Development
-
-```bash
-# Install with dev dependencies
-pip install -e ".[dev]"
-
-# Run tests
-pytest
-
-# Lint code
-ruff check .
-
-# Format code
-ruff format .
-```
-
-## License
-
-MIT License - see LICENSE file for details
+- Azure OpenAI API access
+- pandas
+- numpy
+- scikit-learn
+- python-dotenv
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## Author
+## License
 
-James Asher
+MIT License - See LICENSE file for details.
 
-## Version
+## Citation
 
-0.1.0
+If you use JudgeSync in your research, please cite:
+
+```bibtex
+@software{judgesync2025,
+  title = {JudgeSync: Calibrating LLM Judges with Human Feedback},
+  author = {Asher, James},
+  year = {2025},
+  url = {https://github.com/jasher4994/judgesync}
+}
+```
+
+## Acknowledgments
+
+Inspired by research on LLM judge calibration and the challenges observed in production LLM evaluation systems.
