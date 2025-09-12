@@ -32,6 +32,11 @@ class EvaluationItem:
         """Check if both human and judge scores are present."""
         return self.human_score is not None and self.judge_score is not None
 
+    def validate_score(self, score: float, score_range: ScoreRange) -> bool:
+        """Validate that a score is within the expected range."""
+        min_val, max_val = score_range.value
+        return min_val <= score <= max_val
+
 
 @dataclass
 class AlignmentResults:
@@ -40,4 +45,4 @@ class AlignmentResults:
     kappa_score: float
     agreement_rate: float
     sample_size: int
-    raw_scores: Optional[List[tuple[float, float]]] = None  # (human, judge) pairs
+    raw_scores: Optional[List[tuple[float, float]]] = None

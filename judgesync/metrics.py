@@ -32,21 +32,17 @@ class AlignmentMetrics:
         Raises:
             ValueError: If items don't have both human and judge scores.
         """
-        # Filter to only items with both scores
         scored_items = [item for item in items if item.has_both_scores()]
 
         if not scored_items:
             raise ValueError("No items have both human and judge scores")
 
-        # Extract score pairs
         human_scores = [item.human_score for item in scored_items]
         judge_scores = [item.judge_score for item in scored_items]
 
-        # Calculate metrics
         kappa = self._calculate_kappa(human_scores, judge_scores)
         agreement = self._calculate_agreement_rate(human_scores, judge_scores)
 
-        # Create results
         results = AlignmentResults(
             kappa_score=kappa,
             agreement_rate=agreement,
@@ -69,7 +65,6 @@ class AlignmentMetrics:
             Cohen's kappa score.
         """
         # For continuous scores, we need to discretize them
-        # or use weighted kappa
         if self.score_range == ScoreRange.PERCENTAGE:
             # Convert to bins for percentage scores
             human_binned = self._bin_percentage_scores(human_scores)
@@ -97,6 +92,9 @@ class AlignmentMetrics:
         Returns:
             Proportion of scores that agree within tolerance.
         """
+        if not human_scores or not judge_scores:
+            return 0.0
+
         agreements = sum(
             1 for h, j in zip(human_scores, judge_scores) if abs(h - j) <= tolerance
         )
@@ -155,7 +153,6 @@ class AlignmentMetrics:
         human_scores = [item.human_score for item in scored_items]
         judge_scores = [item.judge_score for item in scored_items]
 
-        # Discretize scores
         if self.score_range == ScoreRange.PERCENTAGE:
             human_binned = self._bin_percentage_scores(human_scores)
             judge_binned = self._bin_percentage_scores(judge_scores)
