@@ -46,3 +46,4 @@ class AlignmentResults:
     agreement_rate: float
     sample_size: int
     raw_scores: Optional[List[tuple[float, float]]] = None
+    correlation: Optional[float] = None

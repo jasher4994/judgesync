@@ -7,7 +7,6 @@ name = "judgesync"
 version = "0.1.0"
 description = "A Python package for aligning LLM judges to human preferences"
 readme = "README.md"
-license = {text = "MIT"}
 requires-python = ">=3.8"  # This should be here, not in scripts
 authors = [
     {name = "James Asher", email = "jamesasher@microsoft.com"},
@@ -16,7 +15,6 @@ keywords = ["llm", "evaluation", "alignment", "judge", "metrics", "azure", "open
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
@@ -44,11 +42,9 @@ dev = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/yourusername/judgesync"
-"Bug Tracker" = "https://github.com/yourusername/judgesync/issues"
+"Homepage" = "https://github.com/jasher4994/judgesync"
+"Bug Tracker" = "https://github.com/jasher4994/judgesync/issues"
 
-[project.scripts]
-judgesync = "judgesync.__main__:main"  # This is the correct format for scripts
 
 [tool.setuptools]
 package-dir = {"" = "."}
