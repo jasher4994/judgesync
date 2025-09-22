@@ -1,7 +1,7 @@
 """Main alignment tracking functionality."""
 
 import logging
-from pathlib import Path  # Add this import
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .comparison import ComparisonResults, JudgeComparison
@@ -10,7 +10,6 @@ from .judge import Judge
 from .metrics import AlignmentMetrics
 from .types import AlignmentResults, EvaluationItem, ScoreRange
 
-# Set up logging
 logger = logging.getLogger(__name__)
 
 
@@ -83,7 +82,7 @@ class AlignmentTracker:
             filepath=filepath,
             question_col=question_col,
             response_col=response_col,
-            score_col=human_score_col,  # Changed from human_score_col to score_col
+            score_col=human_score_col,
         )
         logger.info(f"Loaded {len(self.data_loader.items)} items")
 
@@ -131,7 +130,6 @@ class AlignmentTracker:
         if not items_to_judge:
             raise ValueError("No items to judge.")
 
-        # Run the judge
         scored_items = self.judge.score_items(items_to_judge)
 
         return scored_items
@@ -149,14 +147,12 @@ class AlignmentTracker:
         """
         items_to_analyze = items or self.data_loader.items
 
-        # Calculate metrics
         results = self.metrics.calculate(items_to_analyze)
 
-        # Store in history with current prompt
         if self.judge:
             self.history.append(
                 {
-                    "prompt": self.judge.system_prompt,
+                    "system_prompt": self.judge.system_prompt,
                     "results": results,
                     "items_count": len(items_to_analyze),
                 }
@@ -165,7 +161,19 @@ class AlignmentTracker:
         return results
 
     def run_alignment_test(self, use_async: bool = True) -> AlignmentResults:
-        """Run alignment test with current judge and data."""
+        """Run alignment test with current judge and data.
+
+        Note: This method modifies the loaded items by adding judge_score to each item.
+
+        Args:
+            use_async: Whether to use async batch processing for scoring.
+
+        Returns:
+            AlignmentResults with calculated metrics.
+
+        Raises:
+            ValueError: If no judge is configured or no items are loaded.
+        """
         if not self.judge:
             raise ValueError("No judge set. Call set_judge() first.")
         if not self.data_loader.items:
@@ -173,14 +181,11 @@ class AlignmentTracker:
 
         logger.info("Running alignment test...")
 
-        # Score items using the judge
         items = self.data_loader.items
         self.judge.score_items(items, use_async=use_async)
 
-        # Calculate alignment metrics
         results = self.metrics.calculate(items)
 
-        # Store in history
         self.history.append(
             {
                 "system_prompt": self.judge.system_prompt,
@@ -222,7 +227,6 @@ class AlignmentTracker:
         if not self.history:
             return None
 
-        # Sort by kappa score (higher is better)
         best = max(self.history, key=lambda x: x["results"].kappa_score)
         return best
 
@@ -261,19 +265,28 @@ class AlignmentTracker:
         """Create a JudgeComparison instance for comparing multiple judges.
 
         Returns:
-            A JudgeComparison instance.
+            A JudgeComparison instance configured with current settings.
+
+        Raises:
+            ValueError: If no judge is configured (needed for Azure credentials).
 
         Example:
             >>> tracker = AlignmentTracker()
+            >>> tracker.set_judge("baseline prompt")  # Required for credentials
             >>> comparison = tracker.create_comparison()
             >>> comparison.add_judge("strict", "Be very strict")
             >>> comparison.add_judge("lenient", "Be generous")
             >>> results = comparison.run_comparison(tracker.data_loader.items)
         """
+        if not self.judge:
+            raise ValueError(
+                "No judge configured. Call set_judge() first to provide Azure credentials."
+            )
+
         return JudgeComparison(
             score_range=self.score_range,
-            azure_endpoint=self.judge.azure_endpoint if self.judge else None,
-            api_key=self.judge.api_key if self.judge else None,
+            azure_endpoint=self.judge.azure_endpoint,
+            api_key=self.judge.api_key,
         )
 
     def compare_prompts(

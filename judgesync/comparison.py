@@ -10,7 +10,6 @@ from .judge import Judge
 from .metrics import AlignmentMetrics
 from .types import AlignmentResults, EvaluationItem, ScoreRange
 
-# Set up logging
 logger = logging.getLogger(__name__)
 
 
@@ -21,7 +20,7 @@ class JudgeConfig:
     name: str
     system_prompt: str
     deployment_name: Optional[str] = None
-    temperature: float = 0.0
+    temperature: float = 0.2
 
     def __hash__(self):
         """Make hashable for use as dict key."""
@@ -45,7 +44,6 @@ class ComparisonResults:
         output.append("JUDGE COMPARISON RESULTS")
         output.append("=" * 60)
 
-        # Show rankings
         output.append("\nRankings by Kappa Score:")
         for idx, row in self.rankings.iterrows():
             output.append(
@@ -94,7 +92,7 @@ class JudgeComparison:
         name: str,
         system_prompt: str,
         deployment_name: Optional[str] = None,
-        temperature: float = 0.0,
+        temperature: float = 0.2,
     ) -> None:
         """Add a judge configuration to compare.
 
@@ -121,7 +119,6 @@ class JudgeComparison:
 
         self.configs[name] = config
 
-        # Create the judge
         self.judges[name] = Judge(
             system_prompt=system_prompt,
             score_range=self.score_range,
@@ -175,7 +172,6 @@ class JudgeComparison:
         if not self.judges:
             raise ValueError("No judges added for comparison")
 
-        # Filter to items with human scores
         items_with_scores = [item for item in items if item.human_score is not None]
         if not items_with_scores:
             raise ValueError("No items have human scores")
@@ -187,11 +183,9 @@ class JudgeComparison:
         results = {}
         all_scores = {}
 
-        # Run each judge
         for name, judge in self.judges.items():
             logger.info(f"Running judge '{name}'...")
 
-            # Make copies of items to avoid overwriting scores
             judge_items = [
                 EvaluationItem(
                     question=item.question,
@@ -202,7 +196,6 @@ class JudgeComparison:
                 for item in items_with_scores
             ]
 
-            # Score items
             if use_async:
                 scored_items = judge.score_items_async(
                     judge_items, batch_size=batch_size, show_progress=False
@@ -210,14 +203,11 @@ class JudgeComparison:
             else:
                 scored_items = judge.score_items(judge_items, use_async=False)
 
-            # Calculate metrics
             alignment_results = self.metrics.calculate(scored_items)
             results[name] = alignment_results
 
-            # Store scores for detailed comparison
             all_scores[name] = [item.judge_score for item in scored_items]
 
-            # Calculate correlation if requested
             if calculate_correlation:
                 try:
                     correlation = self.metrics.calculate_correlation(scored_items)
@@ -226,7 +216,6 @@ class JudgeComparison:
                     logger.warning(f"Could not calculate correlation for {name}: {e}")
                     results[name].correlation = 0.0
 
-        # Create rankings
         rankings_data = []
         for name, result in results.items():
             rankings_data.append(
@@ -242,16 +231,13 @@ class JudgeComparison:
         rankings = pd.DataFrame(rankings_data)
         rankings = rankings.sort_values("kappa", ascending=False).reset_index(drop=True)
 
-        # Find best judge
         best_judge = rankings.iloc[0]["judge"]
 
-        # Create detailed scores DataFrame
         detailed_scores = pd.DataFrame(all_scores)
         detailed_scores["human_score"] = [
             item.human_score for item in items_with_scores
         ]
 
-        # Reorder columns
         cols = ["human_score"] + [
             col for col in detailed_scores.columns if col != "human_score"
         ]
@@ -282,7 +268,6 @@ class JudgeComparison:
         try:
             import matplotlib.pyplot as plt
 
-            # Create figure with subplots - now 2x3 for distribution plot
             fig, axes = plt.subplots(2, 3, figsize=(15, 10))
 
             # 1. Bar chart of kappa scores
@@ -356,7 +341,6 @@ class JudgeComparison:
             # 6. Distribution comparison for all judges
             ax = axes[1, 2]
             if results.detailed_scores is not None:
-                # Box plot comparing score distributions
                 judge_cols = [
                     col
                     for col in results.detailed_scores.columns
@@ -369,9 +353,7 @@ class JudgeComparison:
                 labels = ["Human"] + judge_cols
 
                 bp = ax.boxplot(data_to_plot, labels=labels, patch_artist=True)
-                # Color the human box differently
                 bp["boxes"][0].set_facecolor("lightblue")
-                # Color the best judge box
                 best_idx = judge_cols.index(results.best_judge) + 1
                 bp["boxes"][best_idx].set_facecolor("lightgreen")
 
@@ -379,22 +361,18 @@ class JudgeComparison:
                 ax.set_title("Score Distribution Comparison (All Judges)")
                 ax.tick_params(axis="x", rotation=45)
 
-            # Add title and adjust layout
             plt.suptitle(
                 f"Judge Comparison Results - Best: {results.best_judge}",
                 fontsize=14,
                 fontweight="bold",
             )
 
-            # Use tight_layout with padding to prevent label cutoff
             plt.tight_layout(rect=[0, 0.03, 1, 0.97])
 
-            # Save if path provided
             if save_path:
                 plt.savefig(save_path, dpi=dpi, bbox_inches="tight")
                 logger.info(f"Figure saved to: {save_path}")
 
-            # Show if requested
             if show:
                 plt.show()
             else:
@@ -420,18 +398,14 @@ class JudgeComparison:
         if results.detailed_scores is None:
             return pd.DataFrame()
 
-        # Calculate standard deviation across judge scores
         judge_cols = [
             col for col in results.detailed_scores.columns if col != "human_score"
         ]
 
-        # Create a copy to avoid modifying the original
         df = results.detailed_scores.copy()
 
-        # Calculate std across judge columns
         judge_std = df[judge_cols].std(axis=1)
 
-        # Filter for high disagreement
         high_disagreement = df[judge_std >= threshold].copy()
 
         return high_disagreement
