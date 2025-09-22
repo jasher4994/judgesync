@@ -49,19 +49,16 @@ class TestJudge:
         # Mock load_dotenv to do nothing (don't load .env file)
         mock_load_dotenv.return_value = None
 
-        # Clear environment variables - combine the with statements
-        with (
-            patch.dict(
-                os.environ,
-                {
-                    "AZURE_OPENAI_ENDPOINT": "",
-                    "AZURE_OPENAI_API_KEY": "",
-                    "AZURE_OPENAI_DEPLOYMENT": "",
-                },
-                clear=True,
-            ),
-            pytest.raises(ValueError, match="Azure OpenAI configuration incomplete"),
-        ):
+        # Clear environment variables - Python 3.8 compatible syntax
+        with patch.dict(
+            os.environ,
+            {
+                "AZURE_OPENAI_ENDPOINT": "",
+                "AZURE_OPENAI_API_KEY": "",
+                "AZURE_OPENAI_DEPLOYMENT": "",
+            },
+            clear=True,
+        ), pytest.raises(ValueError, match="Azure OpenAI configuration incomplete"):
             Judge(system_prompt="Rate the response")
 
     @patch("judgesync.judge.AzureOpenAI")

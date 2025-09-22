@@ -1,4 +1,4 @@
-.PHONY: help install test lint format clean pre-commit
+.PHONY: help install test lint format clean pre-commit build check-dist upload-test upload
 
 help:
 	@echo "Available commands:"
@@ -8,6 +8,10 @@ help:
 	@echo "  make format    Format code with ruff"
 	@echo "  make clean     Remove build artifacts"
 	@echo "  make pre-commit Run pre-commit on all files"
+	@echo "  make build     Build distribution packages"
+	@echo "  make check-dist Check distribution package integrity"
+	@echo "  make upload-test Upload to Test PyPI"
+	@echo "  make upload    Upload to production PyPI"
 
 install:
 	pip install -e ".[dev]"
@@ -36,3 +40,22 @@ clean:
 
 pre-commit:
 	pre-commit run --all-files
+
+build: clean
+	python3 -m build . --outdir dist/
+
+check-dist: build
+	python3 -m twine check dist/*
+
+upload-test: check-dist
+	python3 -m twine upload --repository testpypi dist/*
+
+upload: check-dist
+	@echo "WARNING: This will upload to PRODUCTION PyPI!"
+	@read -p "Are you sure? [y/N] " -n 1 -r; \
+	echo; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		python3 -m twine upload dist/*; \
+	else \
+		echo "Upload cancelled."; \
+	fi
