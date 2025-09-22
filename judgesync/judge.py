@@ -30,7 +30,7 @@ class Judge:
         api_key: Optional[str] = None,
         deployment_name: Optional[str] = None,
         api_version: Optional[str] = None,
-        temperature: Optional[float] = None,  # Changed to None by default
+        temperature: Optional[float] = None,
     ):
         """Initialize the Judge with Azure OpenAI configuration.
 
