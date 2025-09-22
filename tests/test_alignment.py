@@ -160,7 +160,7 @@ class TestAlignmentTracker:
         results = tracker.calculate_alignment()
 
         assert len(tracker.history) == 1
-        assert tracker.history[0]["prompt"] == "Test prompt"
+        assert tracker.history[0]["system_prompt"] == "Test prompt"
         assert tracker.history[0]["results"] == results
         assert tracker.history[0]["items_count"] == 1
 
@@ -291,21 +291,21 @@ class TestAlignmentTracker:
         # Add fake history
         tracker.history = [
             {
-                "prompt": "Okay prompt",
+                "system_prompt": "Okay prompt",
                 "results": AlignmentResults(
                     kappa_score=0.5, agreement_rate=0.6, sample_size=10
                 ),
                 "items_count": 10,
             },
             {
-                "prompt": "Best prompt",
+                "system_prompt": "Best prompt",
                 "results": AlignmentResults(
                     kappa_score=0.9, agreement_rate=0.95, sample_size=10
                 ),
                 "items_count": 10,
             },
             {
-                "prompt": "Bad prompt",
+                "system_prompt": "Bad prompt",
                 "results": AlignmentResults(
                     kappa_score=0.2, agreement_rate=0.3, sample_size=10
                 ),
@@ -315,7 +315,7 @@ class TestAlignmentTracker:
 
         best = tracker.get_best_prompt()
 
-        assert best["prompt"] == "Best prompt"
+        assert best["system_prompt"] == "Best prompt"
         assert best["results"].kappa_score == 0.9
 
     def test_clear_data(self):

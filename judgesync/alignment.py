@@ -268,25 +268,45 @@ class AlignmentTracker:
             A JudgeComparison instance configured with current settings.
 
         Raises:
-            ValueError: If no judge is configured (needed for Azure credentials).
+            ValueError: If Azure credentials cannot be found in environment or judge.
 
         Example:
             >>> tracker = AlignmentTracker()
-            >>> tracker.set_judge("baseline prompt")  # Required for credentials
+            >>> # Automatically loads Azure credentials from .env
             >>> comparison = tracker.create_comparison()
             >>> comparison.add_judge("strict", "Be very strict")
             >>> comparison.add_judge("lenient", "Be generous")
             >>> results = comparison.run_comparison(tracker.data_loader.items)
         """
-        if not self.judge:
+        # Try to get Azure credentials from existing judge first
+        if self.judge:
+            return JudgeComparison(
+                score_range=self.score_range,
+                azure_endpoint=self.judge.azure_endpoint,
+                api_key=self.judge.api_key,
+            )
+
+        # If no judge set, try to load credentials from environment
+        import os
+
+        from dotenv import load_dotenv
+
+        load_dotenv()
+
+        azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+        api_key = os.getenv("AZURE_OPENAI_API_KEY")
+
+        if not azure_endpoint or not api_key:
             raise ValueError(
-                "No judge configured. Call set_judge() first to provide Azure credentials."
+                "Azure OpenAI credentials not found. Either:\n"
+                "1. Call set_judge() first to configure credentials, or\n"
+                "2. Set AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY in your .env file"
             )
 
         return JudgeComparison(
             score_range=self.score_range,
-            azure_endpoint=self.judge.azure_endpoint,
-            api_key=self.judge.api_key,
+            azure_endpoint=azure_endpoint,
+            api_key=api_key,
         )
 
     def compare_prompts(

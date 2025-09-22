@@ -107,8 +107,17 @@ class JudgeComparison:
             >>> comparison.add_judge("strict", "Be very strict in your evaluation.")
             >>> comparison.add_judge("lenient", "Be generous in your evaluation.")
         """
+        if not name or not name.strip():
+            raise ValueError("Judge name cannot be empty")
+
         if name in self.judges:
             raise ValueError(f"Judge '{name}' already exists")
+
+        if not system_prompt or not system_prompt.strip():
+            raise ValueError("System prompt cannot be empty")
+
+        if not 0 <= temperature <= 2:
+            raise ValueError("Temperature must be between 0 and 2")
 
         config = JudgeConfig(
             name=name,
@@ -172,9 +181,18 @@ class JudgeComparison:
         if not self.judges:
             raise ValueError("No judges added for comparison")
 
+        if not items:
+            raise ValueError("No items provided for comparison")
+
+        if batch_size <= 0:
+            raise ValueError("batch_size must be positive")
+
         items_with_scores = [item for item in items if item.human_score is not None]
         if not items_with_scores:
             raise ValueError("No items have human scores")
+
+        if len(items_with_scores) < 2:
+            logger.warning("Very few items for comparison - results may be unreliable")
 
         logger.info(
             f"Comparing {len(self.judges)} judges on {len(items_with_scores)} items..."
@@ -186,35 +204,51 @@ class JudgeComparison:
         for name, judge in self.judges.items():
             logger.info(f"Running judge '{name}'...")
 
-            judge_items = [
-                EvaluationItem(
-                    question=item.question,
-                    response=item.response,
-                    human_score=item.human_score,
-                    metadata=item.metadata,
-                )
-                for item in items_with_scores
-            ]
+            import copy
 
-            if use_async:
-                scored_items = judge.score_items_async(
-                    judge_items, batch_size=batch_size, show_progress=False
+            judge_items = copy.deepcopy(items_with_scores)
+
+            try:
+                if use_async:
+                    scored_items = judge.score_items_async(
+                        judge_items, batch_size=batch_size, show_progress=False
+                    )
+                else:
+                    scored_items = judge.score_items(judge_items, use_async=False)
+
+                # Validate that judge scored some items
+                scored_count = sum(
+                    1 for item in scored_items if item.judge_score is not None
                 )
-            else:
-                scored_items = judge.score_items(judge_items, use_async=False)
+                if scored_count == 0:
+                    logger.error(f"Judge '{name}' failed to score any items")
+                    continue
+
+            except Exception as e:
+                logger.error(f"Judge '{name}' failed with error: {e}")
+                continue
 
             alignment_results = self.metrics.calculate(scored_items)
-            results[name] = alignment_results
 
-            all_scores[name] = [item.judge_score for item in scored_items]
-
+            correlation = None
             if calculate_correlation:
                 try:
                     correlation = self.metrics.calculate_correlation(scored_items)
-                    results[name].correlation = correlation
                 except Exception as e:
                     logger.warning(f"Could not calculate correlation for {name}: {e}")
-                    results[name].correlation = 0.0
+                    correlation = 0.0
+
+            from .types import AlignmentResults
+
+            results[name] = AlignmentResults(
+                kappa_score=alignment_results.kappa_score,
+                agreement_rate=alignment_results.agreement_rate,
+                sample_size=alignment_results.sample_size,
+                raw_scores=alignment_results.raw_scores,
+                correlation=correlation,
+            )
+
+            all_scores[name] = [item.judge_score for item in scored_items]
 
         rankings_data = []
         for name, result in results.items():
@@ -228,8 +262,14 @@ class JudgeComparison:
                 }
             )
 
+        if not rankings_data:
+            raise ValueError("No valid results to compare - all judges failed")
+
         rankings = pd.DataFrame(rankings_data)
         rankings = rankings.sort_values("kappa", ascending=False).reset_index(drop=True)
+
+        if rankings.empty:
+            raise ValueError("Rankings DataFrame is empty after processing")
 
         best_judge = rankings.iloc[0]["judge"]
 
@@ -267,7 +307,17 @@ class JudgeComparison:
         """
         try:
             import matplotlib.pyplot as plt
+        except ImportError:
+            logger.error(
+                "Matplotlib not installed. Install with: pip install matplotlib"
+            )
+            return
 
+        if results.rankings.empty:
+            logger.warning("No results to plot - rankings DataFrame is empty")
+            return
+
+        try:
             fig, axes = plt.subplots(2, 3, figsize=(15, 10))
 
             # 1. Bar chart of kappa scores
