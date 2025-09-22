@@ -8,7 +8,6 @@ import pandas as pd
 
 from .types import EvaluationItem, ScoreRange
 
-# Set up logging
 logger = logging.getLogger(__name__)
 
 
@@ -77,11 +76,10 @@ class DataLoader:
         if not path.exists():
             raise FileNotFoundError(f"File not found: {filepath}")
 
-        df = pd.read_csv(filepath, nrows=max_rows)  # Prevent memory issues
+        df = pd.read_csv(filepath, nrows=max_rows)
         if len(df) == max_rows:
             logger.warning(f"CSV truncated to {max_rows} rows")
 
-        # Check for required columns
         required_cols = [question_col, response_col, score_col]
         missing_cols = [col for col in required_cols if col not in df.columns]
         if missing_cols:
@@ -89,7 +87,6 @@ class DataLoader:
 
         # Process each row
         for _, row in df.iterrows():
-            # Extract metadata if specified
             metadata = {}
             if metadata_cols:
                 for col in metadata_cols:

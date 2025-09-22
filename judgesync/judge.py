@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import os
+import re
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -11,10 +12,8 @@ from openai import AsyncAzureOpenAI, AzureOpenAI
 
 from .types import EvaluationItem, ScoreRange
 
-# Set up logging
 logger = logging.getLogger(__name__)
 
-# Suppress OpenAI HTTP request logs
 logging.getLogger("openai").setLevel(logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
@@ -30,8 +29,8 @@ class Judge:
         azure_endpoint: Optional[str] = None,
         api_key: Optional[str] = None,
         deployment_name: Optional[str] = None,
-        api_version: str = "2024-02-01",
-        temperature: float = 0.0,
+        api_version: Optional[str] = None,
+        temperature: Optional[float] = None,
     ):
         """Initialize the Judge with Azure OpenAI configuration.
 
@@ -42,7 +41,8 @@ class Judge:
             api_key: Azure OpenAI API key (or set AZURE_OPENAI_API_KEY env var).
             deployment_name: Azure deployment name (or set AZURE_OPENAI_DEPLOYMENT env var).
             api_version: Azure OpenAI API version.
-            temperature: Temperature for response generation (0-2).
+            temperature: Temperature for response generation (0-2). None uses model default.
+                        Note: Not all Azure models support temperature parameter.
         """
         # Load environment variables
         load_dotenv()
@@ -50,15 +50,23 @@ class Judge:
         self.system_prompt = system_prompt
         self.score_range = score_range
 
-        # Validate temperature
-        if not 0 <= temperature <= 2:
-            raise ValueError("Temperature must be between 0 and 2")
+        # Handle temperature
+        if temperature is not None:
+            if not 0 <= temperature <= 2:
+                raise ValueError("Temperature must be between 0 and 2")
+            logger.info(
+                f"Temperature set to {temperature}. Note: Not all Azure models support "
+                "temperature parameter. If you encounter errors, try setting temperature=None."
+            )
         self.temperature = temperature
 
         # Get Azure configuration from parameters or environment
         self.azure_endpoint = azure_endpoint or os.getenv("AZURE_OPENAI_ENDPOINT")
         self.api_key = api_key or os.getenv("AZURE_OPENAI_API_KEY")
         self.deployment_name = deployment_name or os.getenv("AZURE_OPENAI_DEPLOYMENT")
+        self.api_version = api_version or os.getenv(
+            "AZURE_OPENAI_API_VERSION", "2024-02-01"
+        )
 
         if not all([self.azure_endpoint, self.api_key, self.deployment_name]):
             raise ValueError(
@@ -67,20 +75,18 @@ class Judge:
                 "parameters or as environment variables."
             )
 
-        # Initialize both sync and async Azure OpenAI clients
         self.client = AzureOpenAI(
             azure_endpoint=self.azure_endpoint,
             api_key=self.api_key,
-            api_version=api_version,
+            api_version=self.api_version,
         )
 
         self.async_client = AsyncAzureOpenAI(
             azure_endpoint=self.azure_endpoint,
             api_key=self.api_key,
-            api_version=api_version,
+            api_version=self.api_version,
         )
 
-        # Store for tracking
         self.last_response: Optional[Dict[str, Any]] = None
 
     def score_item(self, item: EvaluationItem) -> float:
@@ -95,27 +101,24 @@ class Judge:
         Raises:
             ValueError: If the response cannot be parsed as a valid score.
         """
-        # Build the user prompt
         user_prompt = self._build_user_prompt(item)
 
-        # Get response from Azure OpenAI
-        response = self.client.chat.completions.create(
-            model=self.deployment_name,
-            messages=[
+        api_params = {
+            "model": self.deployment_name,
+            "messages": [
                 {"role": "system", "content": self._build_system_prompt()},
                 {"role": "user", "content": user_prompt},
             ],
-            temperature=self.temperature,
-        )
+        }
 
-        # Store the full response for debugging
+        if self.temperature is not None:
+            api_params["temperature"] = self.temperature
+
+        response = self.client.chat.completions.create(**api_params)
+
         self.last_response = response.model_dump()
 
-        # Extract and parse the score
         response_text = response.choices[0].message.content.strip()
-
-        # Parse the score from the response
-        import re
 
         score_match = re.search(r"(\d+(?:\.\d+)?)", response_text)
         if not score_match:
@@ -128,7 +131,6 @@ class Judge:
                 f"Could not parse score from response: {response_text}"
             ) from e
 
-        # Validate score is within expected range
         min_score, max_score = self.score_range.value
         if not min_score <= score <= max_score:
             raise ValueError(
@@ -151,19 +153,20 @@ class Judge:
         try:
             user_prompt = self._build_user_prompt(item)
 
-            response = await self.async_client.chat.completions.create(
-                model=self.deployment_name,
-                messages=[
+            api_params = {
+                "model": self.deployment_name,
+                "messages": [
                     {"role": "system", "content": self._build_system_prompt()},
                     {"role": "user", "content": user_prompt},
                 ],
-                temperature=self.temperature,
-            )
+            }
+
+            if self.temperature is not None:
+                api_params["temperature"] = self.temperature
+
+            response = await self.async_client.chat.completions.create(**api_params)
 
             response_text = response.choices[0].message.content.strip()
-
-            # Parse the score
-            import re
 
             score_match = re.search(r"(\d+(?:\.\d+)?)", response_text)
             if not score_match:
@@ -174,7 +177,6 @@ class Judge:
 
             score = float(score_match.group(1))
 
-            # Validate score range
             min_score, max_score = self.score_range.value
             if not min_score <= score <= max_score:
                 logger.warning(
@@ -206,21 +208,17 @@ class Judge:
         """
         results = []
 
-        # Process in batches
         for i in range(0, len(items), batch_size):
             batch = items[i : i + batch_size]
 
-            # Score all items in this batch concurrently
             batch_tasks = [self._score_item_async(item) for item in batch]
             batch_results = await asyncio.gather(*batch_tasks)
 
-            # Update items with scores
             for item, score in batch_results:
                 if score is not None:
                     item.judge_score = score
                 results.append(item)
 
-            # Delay between batches to avoid rate limiting
             if i + batch_size < len(items):
                 await asyncio.sleep(delay_between_batches)
 
@@ -257,19 +255,21 @@ class Judge:
             n_batches = (len(items) + batch_size - 1) // batch_size
             logger.info(f"Processing {len(items)} items in {n_batches} batches...")
 
-        # Run the async function in a new event loop if needed
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
-                # If loop is already running (e.g., in Jupyter), create a new one
-                import nest_asyncio
+                try:
+                    import nest_asyncio
 
-                nest_asyncio.apply()
+                    nest_asyncio.apply()
+                except ImportError:
+                    logger.warning(
+                        "nest_asyncio not installed - async may not work in notebooks"
+                    )
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
-        # Run the async scoring
         result = asyncio.run(
             self._score_batch_async(items, batch_size, delay_between_batches)
         )
@@ -301,10 +301,9 @@ class Judge:
         for i, item in enumerate(items):
             try:
                 item.judge_score = self.score_item(item)
-                time.sleep(delay)  # Prevent rate limiting
+                time.sleep(delay)
             except Exception as e:
                 logger.error(f"Error scoring item {i}: {e}")
-                # Continue with other items even if one fails
                 continue
 
         return items
