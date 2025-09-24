@@ -46,7 +46,7 @@ Thanks for your interest in improving JudgeSync! We welcome issues, discussions,
 
 ## 📬 Pull Requests
 
-- Fill out the PR template (if present) and describe *why* the change is needed.
+- Fill out the PR template and describe *why* the change is needed.
 - Reference related issues using “Closes #123”.
 - Include test results in the PR description (copy the relevant command outputs).
 - Keep PRs focused—prefer several small PRs over one large one.

@@ -1,6 +1,7 @@
+
 # JudgeSync 🧑‍⚖️
 
-A lightweight Python package for calibrating LLM judges to align with human evaluations. Minimize bias and improve reliability in your LLM-as-a-judge workflows.
+JudgeSync is a lightweight Python package for calibrating LLM judges to align with human evaluations. It helps minimize bias and improve reliability in LLM-as-a-judge workflows by comparing different judge configurations and finding the best alignment with human scores.
 
 ## Why JudgeSync?
 
@@ -17,6 +18,7 @@ JudgeSync helps you find the optimal judge configuration (prompt, model, tempera
 ```bash
 pip install judgesync
 ```
+
 
 ## Quick Start
 
@@ -42,12 +44,7 @@ prompt_comparison.add_judge(
 
 prompt_comparison.add_judge(
     name="detailed_rubric",
-    system_prompt="""Rate responses on a 1-5 scale:
-    5: Comprehensive, accurate, well-structured
-    4: Good accuracy, minor gaps
-    3: Adequate, addresses main points
-    2: Partially correct, significant gaps
-    1: Incorrect or irrelevant""",
+    system_prompt="""Rate responses on a 1-5 scale:\n5: Comprehensive, accurate, well-structured\n4: Good accuracy, minor gaps\n3: Adequate, addresses main points\n2: Partially correct, significant gaps\n1: Incorrect or irrelevant""",
 )
 
 # Run comparison and find the best judge
@@ -93,28 +90,28 @@ Percentage of exact score matches between human and judge.
 
 ## Advanced Usage
 
+
 ### Compare Different Models
 
 ```python
-comparison = tracker.create_comparison()
-
-# Test different model configurations
-comparison.add_judge(
-    name="gpt-4-cold",
-    system_prompt="Rate the response quality.",
-    deployment_name="gpt-4",
-    temperature=0.0,
-)
-
-comparison.add_judge(
-    name="gpt-4-warm",
-    system_prompt="Rate the response quality.",
-    deployment_name="gpt-4",
-    temperature=0.7,
-)
-
-results = comparison.run_comparison(tracker.data_loader.items)
+configs = [
+    JudgeConfig(
+        name="gpt-4-cold",
+        system_prompt="Rate the response quality.",
+        deployment_name="gpt-4",
+        temperature=0.0,
+    ),
+    JudgeConfig(
+        name="gpt-4-warm",
+        system_prompt="Rate the response quality.",
+        deployment_name="gpt-4",
+        temperature=0.7,
+    ),
+]
+comparison = JudgeComparison(configs, items)
+results = comparison.run_comparison()
 ```
+
 
 ### Analyze Disagreements
 
@@ -133,8 +130,9 @@ AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
 AZURE_OPENAI_API_KEY=your-api-key
 AZURE_OPENAI_DEPLOYMENT=gpt-4
 
+
 # Option 2: Direct configuration
-tracker.set_judge(
+judge = Judge(
     system_prompt="Your prompt here",
     azure_endpoint="https://your-resource.openai.azure.com/",
     api_key="your-api-key",
@@ -143,6 +141,7 @@ tracker.set_judge(
 ```
 
 ## CSV Format
+
 
 Your evaluation data should have these columns:
 - `question`: The input/prompt
@@ -154,6 +153,7 @@ question,response,human_score
 What is the capital of France?,"Paris is the capital of France.",5
 Explain photosynthesis.,"Plants make food from sunlight.",3
 ```
+
 
 ## Visualization Examples
 
