@@ -49,15 +49,9 @@ build: clean
 check-dist: build
 	python3 -m twine check dist/*
 
+
 upload-test: check-dist
-	python3 -m twine upload --repository testpypi dist/*
+	TWINE_USERNAME=__token__ TWINE_PASSWORD=$(TWINE_PASSWORD_TEST) twine upload --repository testpypi dist/*
 
 upload: check-dist
-	@echo "WARNING: This will upload to PRODUCTION PyPI!"
-	@read -p "Are you sure? [y/N] " -n 1 -r; \
-	echo; \
-	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-		python3 -m twine upload dist/*; \
-	else \
-		echo "Upload cancelled."; \
-	fi
+	TWINE_USERNAME=__token__ TWINE_PASSWORD=$(TWINE_PASSWORD) twine upload dist/*
