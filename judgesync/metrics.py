@@ -1,6 +1,6 @@
 """Metrics for measuring alignment between human and judge scores."""
 
-from typing import List
+from typing import List, cast
 
 import numpy as np
 from scipy.stats import pearsonr, spearmanr
@@ -37,8 +37,8 @@ class AlignmentMetrics:
         if not scored_items:
             raise ValueError("No items have both human and judge scores")
 
-        human_scores = [item.human_score for item in scored_items]
-        judge_scores = [item.judge_score for item in scored_items]
+        human_scores = [cast(float, item.human_score) for item in scored_items]
+        judge_scores = [cast(float, item.judge_score) for item in scored_items]
 
         kappa = self._calculate_kappa(human_scores, judge_scores)
         agreement = self._calculate_agreement_rate(human_scores, judge_scores)
@@ -124,8 +124,9 @@ class AlignmentMetrics:
         if not scored_items:
             raise ValueError("No items have both human and judge scores")
 
-        human_scores = [item.human_score for item in scored_items]
-        judge_scores = [item.judge_score for item in scored_items]
+        # Type assertion - has_both_scores() guarantees these are not None
+        human_scores = [cast(float, item.human_score) for item in scored_items]
+        judge_scores = [cast(float, item.judge_score) for item in scored_items]
 
         if method == "pearson":
             correlation, _ = pearsonr(human_scores, judge_scores)
@@ -150,8 +151,9 @@ class AlignmentMetrics:
         if not scored_items:
             raise ValueError("No items have both human and judge scores")
 
-        human_scores = [item.human_score for item in scored_items]
-        judge_scores = [item.judge_score for item in scored_items]
+        # Type assertion - has_both_scores() guarantees these are not None
+        human_scores = [cast(float, item.human_score) for item in scored_items]
+        judge_scores = [cast(float, item.judge_score) for item in scored_items]
 
         if self.score_range == ScoreRange.PERCENTAGE:
             human_binned = self._bin_percentage_scores(human_scores)

@@ -5,7 +5,7 @@ import logging
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 from dotenv import load_dotenv
 from openai import AsyncAzureOpenAI, AzureOpenAI
@@ -50,7 +50,7 @@ class Judge:
         self.system_prompt = system_prompt
         self.score_range = score_range
 
-        # Handle temperature
+        # Handle temperature - not all models have temperature support
         if temperature is not None:
             if not 0 <= temperature <= 2:
                 raise ValueError("Temperature must be between 0 and 2")
@@ -60,7 +60,6 @@ class Judge:
             )
         self.temperature = temperature
 
-        # Get Azure configuration from parameters or environment
         self.azure_endpoint = azure_endpoint or os.getenv("AZURE_OPENAI_ENDPOINT")
         self.api_key = api_key or os.getenv("AZURE_OPENAI_API_KEY")
         self.deployment_name = deployment_name or os.getenv("AZURE_OPENAI_DEPLOYMENT")
@@ -70,10 +69,14 @@ class Judge:
 
         if not all([self.azure_endpoint, self.api_key, self.deployment_name]):
             raise ValueError(
-                "Azure OpenAI configuration incomplete. Please provide "
-                "azure_endpoint, api_key, and deployment_name either as "
-                "parameters or as environment variables."
+                "Azure OpenAI configuration incomplete. "
+                "Provide azure_endpoint, api_key, and deployment_name "
+                "or set AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, "
+                "and AZURE_OPENAI_DEPLOYMENT environment variables."
             )
+
+        # Add this line to satisfy mypy:
+        assert self.azure_endpoint is not None  # This is guaranteed by the check above
 
         self.client = AzureOpenAI(
             azure_endpoint=self.azure_endpoint,
@@ -103,18 +106,20 @@ class Judge:
         """
         user_prompt = self._build_user_prompt(item)
 
-        api_params = {
+        messages = [
+            {"role": "system", "content": self._build_system_prompt()},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        params: Dict[str, Any] = {
             "model": self.deployment_name,
-            "messages": [
-                {"role": "system", "content": self._build_system_prompt()},
-                {"role": "user", "content": user_prompt},
-            ],
+            "messages": messages,
         }
 
         if self.temperature is not None:
-            api_params["temperature"] = self.temperature
+            params["temperature"] = self.temperature
 
-        response = self.client.chat.completions.create(**api_params)
+        response = self.client.chat.completions.create(**cast(Any, params))
 
         self.last_response = response.model_dump()
 
@@ -153,18 +158,22 @@ class Judge:
         try:
             user_prompt = self._build_user_prompt(item)
 
-            api_params = {
+            messages = [
+                {"role": "system", "content": self._build_system_prompt()},
+                {"role": "user", "content": user_prompt},
+            ]
+
+            params: Dict[str, Any] = {
                 "model": self.deployment_name,
-                "messages": [
-                    {"role": "system", "content": self._build_system_prompt()},
-                    {"role": "user", "content": user_prompt},
-                ],
+                "messages": messages,
             }
 
             if self.temperature is not None:
-                api_params["temperature"] = self.temperature
+                params["temperature"] = self.temperature
 
-            response = await self.async_client.chat.completions.create(**api_params)
+            response = await self.async_client.chat.completions.create(
+                **cast(Any, params)
+            )
 
             response_text = response.choices[0].message.content.strip()
 

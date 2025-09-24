@@ -20,11 +20,11 @@ install:
 	pre-commit install
 
 test:
-	pytest tests/ -v --cov=judgesync --cov-report=term-missing
+	python -m pytest tests/ -v --cov=judgesync --cov-report=term-missing
 
 lint:
-	ruff check .
-	mypy judgesync/
+	python -m ruff check .
+	python -m mypy judgesync/
 
 format:
 	ruff check --fix .
