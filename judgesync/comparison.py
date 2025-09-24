@@ -20,7 +20,7 @@ class JudgeConfig:
     name: str
     system_prompt: str
     deployment_name: Optional[str] = None
-    temperature: float = 0.2
+    temperature: Optional[float] = 0.2
 
     def __hash__(self):
         """Make hashable for use as dict key."""

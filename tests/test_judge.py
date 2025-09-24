@@ -49,7 +49,6 @@ class TestJudge:
         # Mock load_dotenv to do nothing (don't load .env file)
         mock_load_dotenv.return_value = None
 
-        # Clear environment variables - Python 3.8 compatible syntax
         with patch.dict(
             os.environ,
             {
@@ -74,7 +73,6 @@ class TestJudge:
         mock_response.model_dump.return_value = {"test": "data"}
         mock_client.chat.completions.create.return_value = mock_response
 
-        # Create judge and score item
         judge = Judge(
             system_prompt="Rate 1-5",
             score_range=ScoreRange.FIVE_POINT,
@@ -89,7 +87,6 @@ class TestJudge:
         assert score == 4.0
         assert judge.last_response == {"test": "data"}
 
-        # Verify API was called correctly
         mock_client.chat.completions.create.assert_called_once()
         call_args = mock_client.chat.completions.create.call_args
         assert call_args.kwargs["model"] == "test-deployment"

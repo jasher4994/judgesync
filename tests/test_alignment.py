@@ -94,11 +94,9 @@ class TestAlignmentTracker:
     @patch("judgesync.alignment.Judge")
     def test_run_judge_success(self, mock_judge_class):
         """Test running judge on items."""
-        # Setup mock judge
         mock_judge = MagicMock()
         mock_judge_class.return_value = mock_judge
 
-        # Create proper mock that accepts new parameters
         def mock_score_items(items, delay=0.1, use_async=True):
             return [
                 EvaluationItem("Q1", "R1", human_score=5, judge_score=4),
@@ -129,7 +127,6 @@ class TestAlignmentTracker:
         """Test calculating alignment metrics."""
         tracker = AlignmentTracker()
 
-        # Add items with both scores
         items = [
             EvaluationItem("Q1", "R1", human_score=5, judge_score=5),
             EvaluationItem("Q2", "R2", human_score=3, judge_score=4),
@@ -167,7 +164,6 @@ class TestAlignmentTracker:
     @patch("judgesync.alignment.Judge")
     def test_run_alignment_test_complete_flow(self, mock_judge_class):
         """Test complete alignment test flow."""
-        # Setup mock judge
         mock_judge = MagicMock()
         mock_judge.system_prompt = "Test prompt"
         mock_judge_class.return_value = mock_judge
@@ -194,7 +190,6 @@ class TestAlignmentTracker:
         """Test that alignment test without judge raises error."""
         tracker = AlignmentTracker()
 
-        # Use a more general match or check the exact message
         with pytest.raises(ValueError):  # Remove the match if unsure
             tracker.run_alignment_test()
 
@@ -226,7 +221,6 @@ class TestAlignmentTracker:
         tracker = AlignmentTracker()
         tracker.set_judge("Test prompt")
 
-        # Add items, one already judged
         tracker.data_loader.items = [
             EvaluationItem("Q1", "R1", human_score=5, judge_score=4),  # Already judged
             EvaluationItem(
@@ -236,12 +230,9 @@ class TestAlignmentTracker:
 
         tracker.run_alignment_test()
 
-        # Just verify score_items was called
         mock_judge.score_items.assert_called_once()
 
-        # Verify the unjudged item now has a score
         assert tracker.data_loader.items[1].judge_score == 3.0
-        # Verify the already-judged item wasn't changed
         assert tracker.data_loader.items[0].judge_score == 4.0
 
     @patch("judgesync.alignment.Judge")
@@ -254,11 +245,9 @@ class TestAlignmentTracker:
         tracker = AlignmentTracker()
         tracker.set_judge("Best prompt ever")
 
-        # Export without file
         prompt = tracker.export_prompt()
         assert prompt == "Best prompt ever"
 
-        # Export to file
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             temp_path = f.name
 
@@ -342,7 +331,6 @@ class TestAlignmentTracker:
         tracker.add_evaluation_item("Q1", "R1", human_score=80)
         tracker.add_evaluation_item("Q2", "R2")
 
-        # Add some history
         tracker.history = [
             {
                 "prompt": "Test",

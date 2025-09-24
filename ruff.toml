@@ -2,6 +2,7 @@
 target-version = "py38"
 line-length = 88
 
+[lint]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -13,16 +14,15 @@ select = [
     "ARG", # flake8-unused-arguments
     "SIM", # flake8-simplify
 ]
-
 ignore = [
     "E501",  # line too long (handled by formatter)
     "B008",  # do not perform function calls in argument defaults
     "C901",  # too complex
 ]
 
-[per-file-ignores]
+[lint.per-file-ignores]
 "tests/*" = ["ARG001", "ARG002"]  # Unused arguments in tests are OK
-"__init__.py" = ["F401"]  # Unused imports in __init__ are OK
+"__init__.py" = ["F401"]          # Unused imports in __init__ are OK
 
 [format]
 quote-style = "double"

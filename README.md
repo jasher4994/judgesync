@@ -27,7 +27,7 @@ from judgesync import AlignmentTracker, ScoreRange
 tracker = AlignmentTracker(score_range=ScoreRange.FIVE_POINT)
 tracker.load_human_scores_from_csv("evaluation_data.csv")
 
-# Compare different judge prompts
+# Ensure Azure OpenAI credentials are configured (see section below)
 prompt_comparison = tracker.create_comparison()
 
 prompt_comparison.add_judge(
@@ -54,7 +54,7 @@ prompt_comparison.add_judge(
 results = prompt_comparison.run_comparison(tracker.data_loader.items, use_async=True)
 print(results)
 
-# Visualize results
+# Visualize results (requires matplotlib: pip install matplotlib)
 prompt_comparison.plot_comparison(results, save_path="judge_comparison.png")
 ```
 
@@ -125,6 +125,7 @@ print(f"Found {len(disagreements)} items with high disagreement")
 ```
 
 ### Custom Azure OpenAI Configuration
+(Set these before using `create_comparison().`)
 
 ```python
 # Option 1: Environment variables (.env file)
@@ -174,7 +175,7 @@ JudgeSync generates comprehensive comparison charts showing:
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.9+
 - Azure OpenAI API access
 - pandas
 - numpy
@@ -183,7 +184,7 @@ JudgeSync generates comprehensive comparison charts showing:
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, coding standards, and our preferred workflow.
 
 ## License
 

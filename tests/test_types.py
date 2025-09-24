@@ -51,19 +51,15 @@ class TestEvaluationItem:
 
     def test_has_both_scores(self):
         """Test the has_both_scores method."""
-        # Item with no scores
         item1 = EvaluationItem(question="Q", response="R")
         assert not item1.has_both_scores()
 
-        # Item with only human score
         item2 = EvaluationItem(question="Q", response="R", human_score=5.0)
         assert not item2.has_both_scores()
 
-        # Item with only judge score
         item3 = EvaluationItem(question="Q", response="R", judge_score=4.0)
         assert not item3.has_both_scores()
 
-        # Item with both scores
         item4 = EvaluationItem(
             question="Q", response="R", human_score=5.0, judge_score=4.0
         )
